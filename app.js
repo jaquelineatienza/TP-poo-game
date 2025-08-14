@@ -1,4 +1,5 @@
 const readline = require("readline");
+const { mostrarAsciiSecuencial, enfasisAscii } = require("./asciiUtil");
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -42,9 +43,7 @@ class Personaje {
   }
 }
 
-class Protagonista extends Personaje {}
-
-class Pirata extends Protagonista {
+class Pirata extends Personaje {
   usar_Fruta(nombreFruta) {
     const fruta = frutas_del_diablo.find((f) => f.nombre === nombreFruta);
     if (fruta) {
@@ -57,7 +56,7 @@ class Pirata extends Protagonista {
   }
 }
 
-class Marine extends Protagonista {
+class Marine extends Personaje {
   usar_Haki(nombreHaki) {
     const haki_elegido = hakis.find((f) => f.nombre === nombreHaki);
     if (haki_elegido) {
@@ -93,84 +92,96 @@ function elegirAleatorio(lista) {
 }
 
 class Batalla {
-  static iniciar(jugador, enemigo) {
-    console.log(`⚔️ Batalla: ${jugador.nombre} vs ${enemigo.nombre}\n`);
+  static async iniciar(jugador, enemigo) {
+    await mostrarAsciiSecuencial("Batalla!");
+    await mostrarAsciiSecuencial(`${jugador.nombre} vs ${enemigo.nombre}`);
 
     while (jugador.vida > 0 && enemigo.vida > 0) {
-      // Jugador ataca
       let dañoJugador = jugador.arma.daño + jugador.dañoExtra;
       enemigo.recibirDaño(dañoJugador);
+      await mostrarAsciiSecuencial(`${jugador.nombre} ataca!`);
       console.log(
-        `${jugador.nombre} ataca e inflige ${dañoJugador} de daño. Vida de ${enemigo.nombre}: ${enemigo.vida}`
+        `${jugador.nombre} inflige ${dañoJugador} de daño. Vida de ${enemigo.nombre}: ${enemigo.vida}`
       );
 
       if (enemigo.vida <= 0) break;
 
-      // Enemigo ataca
       let dañoEnemigo = enemigo.arma.daño + enemigo.dañoExtra;
       jugador.recibirDaño(dañoEnemigo);
+      await mostrarAsciiSecuencial(`${enemigo.nombre} ataca!`);
       console.log(
-        `${enemigo.nombre} ataca e inflige ${dañoEnemigo} de daño. Vida de ${jugador.nombre}: ${jugador.vida}`
+        `${enemigo.nombre} inflige ${dañoEnemigo} de daño. Vida de ${jugador.nombre}: ${jugador.vida}`
       );
     }
 
     const ganador = jugador.vida > 0 ? jugador : enemigo;
-    console.log(`🏆 La batalla ha terminado. Ganador: ${ganador.nombre}`);
+    await enfasisAscii(`Ganador: ${ganador.nombre}`);
+    console.log(` La batalla ha terminado. Ganador: ${ganador.nombre}`);
   }
 }
 
-function elegirPersonaje() {
+async function elegirPersonaje() {
   rl.question("Elige tipo de personaje (Pirata/Marine): ", (tipo) => {
-    rl.question("Ingresa el nombre del personaje: ", (nombre) => {
+    rl.question("Ingresa el nombre del personaje: ", async (nombre) => {
       let personaje;
-      if (tipo.toLowerCase() === "pirata") {
-        personaje = new Pirata(nombre);
-        personaje.arma = elegirAleatorio(armas);
-        console.log("Frutas disponibles:");
-        frutas_del_diablo.forEach((f) =>
-          console.log(`- ${f.nombre}`, `\n ${f.nivel_daño} \n  `)
-        );
 
-        rl.question("Elige una fruta: ", (fruta) => {
-          personaje.usar_Fruta(fruta);
+      switch (tipo.toLowerCase()) {
+        case "pirata":
+          personaje = new Pirata(nombre);
+          personaje.arma = elegirAleatorio(armas);
+          console.log("Frutas disponibles:");
+          frutas_del_diablo.forEach((f) =>
+            console.log(`- ${f.nombre} (${f.nivel_daño} daño)`)
+          );
 
-          const enemigo = new Marine("Marine");
-          enemigo.arma = elegirAleatorio(armas);
-          enemigo.usar_Haki(elegirAleatorio(hakis).nombre);
+          rl.question("Elige una fruta: ", async (fruta) => {
+            personaje.usar_Fruta(fruta);
 
-          personaje.mostrarInfo();
-          enemigo.mostrarInfo();
+            const enemigo = new Marine("Marine");
+            enemigo.arma = elegirAleatorio(armas);
+            enemigo.usar_Haki(elegirAleatorio(hakis).nombre);
 
-          console.log("\n ¡Comienza la batalla!\n");
-          Batalla.iniciar(personaje, enemigo);
+            await mostrarAsciiSecuencial(personaje.nombre);
+            personaje.mostrarInfo();
+            await mostrarAsciiSecuencial(enemigo.nombre);
+            enemigo.mostrarInfo();
 
+            await mostrarAsciiSecuencial("¡Comienza la batalla!");
+            await Batalla.iniciar(personaje, enemigo);
+
+            rl.close();
+          });
+          break;
+
+        case "marine":
+          personaje = new Marine(nombre);
+          personaje.arma = elegirAleatorio(armas);
+          console.log("Hakis disponibles:");
+          hakis.forEach((h) => console.log(`- ${h.nombre}`));
+
+          rl.question("Elige un haki: ", async (haki) => {
+            personaje.usar_Haki(haki);
+
+            const enemigo = new Pirata("Pirata");
+            enemigo.arma = elegirAleatorio(armas);
+            enemigo.usar_Fruta(elegirAleatorio(frutas_del_diablo).nombre);
+
+            await mostrarAsciiSecuencial(personaje.nombre);
+            personaje.mostrarInfo();
+            await mostrarAsciiSecuencial(enemigo.nombre);
+            enemigo.mostrarInfo();
+
+            await mostrarAsciiSecuencial("¡Comienza la batalla!");
+            await Batalla.iniciar(personaje, enemigo);
+
+            rl.close();
+          });
+          break;
+
+        default:
+          console.log("Tipo de personaje no válido");
           rl.close();
-        });
-      } else if (tipo.toLowerCase() === "marine") {
-        personaje = new Marine(nombre);
-        personaje.arma = elegirAleatorio(armas);
-        console.log("Hakis disponibles:");
-        hakis.forEach((h) => console.log(`- ${h.nombre}`));
-
-        rl.question("Elige un haki: ", (haki) => {
-          personaje.usar_Haki(haki);
-
-          // Enemigo aleatorio
-          const enemigo = new Pirata("Pirata");
-          enemigo.arma = elegirAleatorio(armas);
-          enemigo.usar_Fruta(elegirAleatorio(frutas_del_diablo).nombre);
-
-          personaje.mostrarInfo();
-          enemigo.mostrarInfo();
-
-          console.log("\n ¡Comienza la batalla!\n");
-          Batalla.iniciar(personaje, enemigo);
-
-          rl.close();
-        });
-      } else {
-        console.log("Tipo de personaje no válido");
-        rl.close();
+          break;
       }
     });
   });
