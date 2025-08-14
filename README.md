@@ -1,1 +1,7 @@
-"# TP-poo-game" 
+"# TP-poo-game"
+
+# INTEGRANTES
+
+# lUCAS CARDENAS
+
+# ATIENZA JAQUELINE
